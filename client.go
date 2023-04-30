@@ -79,7 +79,7 @@ func newClientConnection(ctx context.Context, tun TunDevice, config ClientConfig
 
 			case <-keepAlive.C:
 				if err := c.keepAlive(); err != nil {
-					log.Printf("error on keep alive: %s", err)
+					log.Warn("error on keep alive", err)
 					retry = time.Tick(RetryDelay)
 				}
 				continue
@@ -141,6 +141,7 @@ func (c *client) handshake(tun TunDevice, config ClientConfig) error {
 	if err != nil {
 		return err
 	}
+
 	if err := response.UnmarshalBinary(bts[:n:n]); err != nil {
 		return err
 	}

@@ -155,7 +155,7 @@ func NotifyNetworkAddressesChanges(ctx context.Context) (<-chan any, error) {
 		return nil, err
 	}
 
-	out := make(chan any)
+	netEvents := make(chan any)
 
 	go func() {
 		for {
@@ -177,7 +177,25 @@ func NotifyNetworkAddressesChanges(ctx context.Context) (<-chan any, error) {
 			msg := (*kern_event_msg)(unsafe.Pointer(hdr.Data))
 			log.Debugf("receive event with id %d", msg.id)
 
-			out <- struct{}{}
+			netEvents <- struct{}{}
+		}
+	}()
+
+	ioEvents, cancelSubscription := SubscribeSystemEvents()
+	out := make(chan any)
+	go func() {
+		defer cancelSubscription()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-netEvents:
+				out <- struct{}{}
+			case v := <-ioEvents:
+				if v == SystemEventWakeUp {
+					out <- struct{}{}
+				}
+			}
 		}
 	}()
 

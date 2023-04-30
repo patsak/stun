@@ -1,6 +1,7 @@
 package stun
 
 import (
+	"crypto/aes"
 	"errors"
 	"fmt"
 	"net"
@@ -23,6 +24,8 @@ type tmsg struct {
 	addr    netip.Addr
 	payload []byte
 }
+
+var b, _ = aes.NewCipher([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16})
 
 func (t tmsg) MarshalBinary() ([]byte, error) {
 	const byteSize = 8
@@ -53,7 +56,7 @@ func (t *tmsg) UnmarshalBinary(bts []byte) error {
 	}
 	t.tp = msgType(bts[0])
 	ipLen := bts[1]
-	if 2+int(ipLen) >= len(bts) {
+	if 2+int(ipLen) > len(bts) {
 		return errors.New(fmt.Sprintf("ip length %d greater than input slice length %d", ipLen, len(bts)))
 	}
 

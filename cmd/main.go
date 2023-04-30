@@ -24,6 +24,7 @@ var (
 	forceRouteDomains string
 	verbose           bool
 	server            bool
+	dnsServer         string
 )
 
 func init() {
@@ -38,7 +39,8 @@ func init() {
 	flag.StringVar(&peerEndpoint, "p", ":1300", "public peer in format ip:port")
 	flag.StringVar(&peerEndpoint, "peer-endpoint", ":1300", "public peer in format ip:port")
 	flag.StringVar(&forceRouteDomains, "f", "", "file with domains to force redirecting traffic via tunnel")
-	flag.StringVar(&forceRouteDomains, "force-route-domains", "domains.csv", "file with domains to force redirecting traffic via tunnel")
+	flag.StringVar(&forceRouteDomains, "force-route-domains", "", "file with domains to force redirecting traffic via tunnel")
+	flag.StringVar(&dnsServer, "dns-server", "8.8.8.8", "dns server")
 }
 
 func main() {
@@ -71,7 +73,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		runClient(ctx, tun, serverIP, serverPort, clientPort, networkCIDR)
+		runClient(ctx, tun, serverIP, serverPort, clientPort, networkCIDR, dnsServer)
 	}
 
 	handleInterrupt(cancel)
@@ -112,7 +114,7 @@ func handleInterrupt(cancel context.CancelFunc) {
 	}()
 }
 
-func runClient(ctx context.Context, tun stun.TunDevice, serverIP string, serverPort int, clientPort int, networkCIDR string) {
+func runClient(ctx context.Context, tun stun.TunDevice, serverIP string, serverPort int, clientPort int, networkCIDR string, s string) {
 	cfg := stun.ClientConfig{
 		ServerPort:            serverPort,
 		ServerInternetAddress: serverIP,
@@ -130,7 +132,7 @@ func runClient(ctx context.Context, tun stun.TunDevice, serverIP string, serverP
 			panic(err)
 		}
 
-		if err := stun.LoadRoutes(tun, f); err != nil {
+		if err := stun.KeepRoutesToDomains(ctx, tun, dnsServer, f); err != nil {
 			f.Close()
 			panic(err)
 		}

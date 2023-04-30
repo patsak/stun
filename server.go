@@ -182,7 +182,7 @@ func (s *server) readTunLoop(ctx context.Context, nQueue int) <-chan []byte {
 			buf := make([]byte, 1504)
 			n, err := s.tun.Read(buf)
 			if err != nil {
-				log.Printf("read error %v", err)
+				log.Warn("read error", err)
 				continue
 			}
 			buf = buf[tunFrameHeaderSize:n:n]
@@ -272,11 +272,11 @@ func (s *server) receiveClientPacket(buf []byte, netAddr netip.AddrPort) {
 			peerAddress: proto.addr,
 			inetAddress: netAddr,
 		}
-		if s.knownInetAddresses.Get(netAddr.Addr().Unmap()) == nil {
+		if s.knownInetAddresses.Get(netAddr.Addr()) == nil {
 			return
 		}
 		s.knownLocalPeers.Touch(p.peerAddress)
-		s.knownInetAddresses.Touch(p.inetAddress.Addr().Unmap())
+		s.knownInetAddresses.Touch(p.inetAddress.Addr())
 
 		bts, err := tmsg{tp: msgTypeAck}.MarshalBinary()
 		if err != nil {
