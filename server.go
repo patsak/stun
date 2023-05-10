@@ -24,6 +24,7 @@ type server struct {
 	conn               *net.UDPConn
 	tun                TunDevice
 	network            atomic.Pointer[net.IPNet]
+	deviceInfo         atomic.Pointer[Device]
 	config             ServerConfig
 	knownLocalPeers    *ttlcache.Cache[netip.Addr, peer]
 	knownInetAddresses *ttlcache.Cache[netip.Addr, peer]
@@ -56,7 +57,7 @@ func RunServer(ctx context.Context, tun TunDevice, config ServerConfig) error {
 		return err
 	}
 
-	addr := tun.LookupDeviceInfo()
+	deviceInfo := tun.LookupDeviceInfo()
 
 	srv := server{
 		conn:               conn,
@@ -66,16 +67,18 @@ func RunServer(ctx context.Context, tun TunDevice, config ServerConfig) error {
 	}
 
 	srv.network.Store(&net.IPNet{
-		IP:   addr.Addr.AsSlice(),
-		Mask: addr.Mask,
+		IP:   deviceInfo.Addr.AsSlice(),
+		Mask: deviceInfo.Mask,
 	})
+	srv.deviceInfo.Store(&deviceInfo)
 
 	go func() {
 		for range addressChanges {
-			addr := tun.LookupDeviceInfo()
+			deviceInfo := tun.LookupDeviceInfo()
+			srv.deviceInfo.Store(&deviceInfo)
 			srv.network.Store(&net.IPNet{
-				IP:   addr.Addr.AsSlice(),
-				Mask: addr.Mask,
+				IP:   deviceInfo.Addr.AsSlice(),
+				Mask: deviceInfo.Mask,
 			})
 		}
 	}()
@@ -143,8 +146,8 @@ func (s *server) readConnLoop(ctx context.Context, nQueue int) <-chan connReadRe
 				return
 			default:
 			}
-
-			buf := make([]byte, 1504)
+			di := s.deviceInfo.Load()
+			buf := make([]byte, di.MTU+tmsgMaxHeaderSize)
 			var n int
 			var netAddr netip.AddrPort
 			n, netAddr, err := s.conn.ReadFromUDPAddrPort(buf)
@@ -179,7 +182,8 @@ func (s *server) readTunLoop(ctx context.Context, nQueue int) <-chan []byte {
 			default:
 			}
 
-			buf := make([]byte, 1504)
+			di := s.deviceInfo.Load()
+			buf := make([]byte, di.MTU+tunFrameHeaderSize)
 			n, err := s.tun.Read(buf)
 			if err != nil {
 				log.Warn("read error", err)

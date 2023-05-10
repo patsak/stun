@@ -114,7 +114,7 @@ func handleInterrupt(cancel context.CancelFunc) {
 	}()
 }
 
-func runClient(ctx context.Context, tun stun.TunDevice, serverIP string, serverPort int, clientPort int, networkCIDR string, s string) {
+func runClient(ctx context.Context, tun stun.TunDevice, serverIP string, serverPort int, clientPort int, networkCIDR string, dnsServer string) {
 	cfg := stun.ClientConfig{
 		ServerPort:            serverPort,
 		ServerInternetAddress: serverIP,

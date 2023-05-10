@@ -209,7 +209,7 @@ func (c *client) processPacketsFromConnection(ctx context.Context, tun TunDevice
 			continue
 		}
 		if err != nil {
-			log.Warn("read socket error", err)
+			log.Warn("read socket", "error", err)
 			continue
 		}
 
@@ -223,13 +223,12 @@ func (c *client) processPacketsFromConnection(ctx context.Context, tun TunDevice
 		}
 
 		if msg.tp == msgTypeAck {
-			log.Debug("ack received")
 			c.ackChannel <- struct{}{}
 			continue
 		}
 
 		if _, err := tun.Write(tunFrameEncode(msg.payload)); err != nil {
-			log.Warnf("write to device error %s", err)
+			log.Warn("write to device", "error", err)
 			continue
 		}
 	}
@@ -246,7 +245,7 @@ func (c *client) readDevicePackets(ctx context.Context, tun TunDevice, tunDevice
 		buf := make([]byte, c.bufSize())
 		n, err := tun.Read(buf)
 		if err != nil {
-			log.Warnf("read device error %+v", err)
+			log.Warn("read device", "error", err)
 			continue
 		}
 
@@ -277,12 +276,12 @@ func (c *client) processPacketsFromDevice(ctx context.Context, tunDeviceCh <-cha
 
 		outBytes, err := msg.MarshalBinary()
 		if err != nil {
-			log.Warn("client marshal data", err)
+			log.Warn("client marshal data", "error", err)
 			continue
 		}
 
 		if _, err := c.get().Write(outBytes); err != nil {
-			log.Warn("client write error", err)
+			log.Warn("client write", "error", err)
 			continue
 		}
 	}

@@ -1,7 +1,6 @@
 package stun
 
 import (
-	"crypto/aes"
 	"errors"
 	"fmt"
 	"net"
@@ -24,8 +23,6 @@ type tmsg struct {
 	addr    netip.Addr
 	payload []byte
 }
-
-var b, _ = aes.NewCipher([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16})
 
 func (t tmsg) MarshalBinary() ([]byte, error) {
 	const byteSize = 8

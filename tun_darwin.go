@@ -124,7 +124,7 @@ func InitTunDevice(tunNumber int) (TunDevice, error) {
 
 	f := os.NewFile(uintptr(fd), string(bytes.Trim(name[:], "\x00")))
 
-	log.Infof("tunnel %s is ready", string(name[:]))
+	log.Infof("tunnel device %s is ready", string(name[:]))
 
 	return tun{f}, nil
 }
@@ -169,13 +169,14 @@ func NotifyNetworkAddressesChanges(ctx context.Context) (<-chan any, error) {
 
 			_, err := unix.Read(fd, buf)
 			if err != nil {
-				log.Warn("can't read event", err)
+				log.Warn("can't read network event", "error", err)
 				continue
 			}
 
 			hdr := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
 			msg := (*kern_event_msg)(unsafe.Pointer(hdr.Data))
-			log.Debugf("receive event with id %d", msg.id)
+
+			log.Debug("receive event", "id", msg.id)
 
 			netEvents <- struct{}{}
 		}
